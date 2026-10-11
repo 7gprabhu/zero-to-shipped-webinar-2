@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { readAnalysisResponse } from './api.js';
 const sample = { score: 78, presentSkills: ['JavaScript', 'React', 'HTML & CSS', 'Git', 'REST APIs', 'Problem solving'], missingSkills: ['TypeScript', 'Automated testing', 'CI/CD'], method: 'sample' };
 export default function App() {
   const [file, setFile] = useState(null);
@@ -18,8 +19,7 @@ export default function App() {
     try {
       const form = new FormData(); form.append('resume', file); form.append('jobDescription', jd);
       const response = await fetch('/api/resumes/analyze', { method: 'POST', body: form });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Comparison failed.');
+      const data = await readAnalysisResponse(response);
       setReport(data);
     } catch (err) { setError(err instanceof TypeError ? 'Cannot reach the API. Make sure the backend is running.' : err.message); }
     finally { setBusy(false); }

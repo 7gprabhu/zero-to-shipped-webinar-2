@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import resumeRoutes from './routes/resumeRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { connectDB } from './config/db.js';
+import { httpError } from './utils.js';
 dotenv.config({ path: fileURLToPath(new URL('./.env', import.meta.url)), quiet: true });
 const app = express();
 app.disable('x-powered-by');
@@ -23,7 +24,12 @@ app.use((req, res, next) => {
 // Vercel imports this app directly; initialize and reuse MongoDB per instance.
 app.use(async (req, res, next) => {
   if (!process.env.VERCEL) return next();
-  try { await connectDB(); next(); } catch (error) { next(error); }
+  try { await connectDB(); next(); } catch (error) {
+    console.error('MongoDB connection failed:', error.name);
+    next(httpError(503, process.env.MONGODB_URI
+      ? 'Cannot connect to MongoDB. Check the database credentials and Atlas network access in the backend configuration.'
+      : 'Database is not configured. Set MONGODB_URI in the Vercel project environment variables and redeploy.'));
+  }
 });
 app.get('/api/health', (req, res) => {
   const connected = mongoose.connection.readyState === 1;
