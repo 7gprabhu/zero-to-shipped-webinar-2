@@ -4,6 +4,7 @@ const schema = new mongoose.Schema({
   jobDescription: { type: String, required: true },
   score: { type: Number, default: null },
   presentSkills: [String], missingSkills: [String], requiredSkills: [String],
-  method: { type: String, default: 'keyword-match' }
+  summary: String,
+  method: { type: String, default: 'labd-ai' }
 }, { timestamps: true });
 export default mongoose.model('Analysis', schema);

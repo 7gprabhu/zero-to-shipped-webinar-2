@@ -22,7 +22,18 @@ function resumePDF(text) {
   return Buffer.from(pdf);
 }
 
-test('API extracts a real PDF, compares skills and calls persistence', async t => {
+test('API extracts a real PDF, requests AI analysis and calls persistence', async t => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.LABD_API_KEY;
+  process.env.LABD_API_KEY = 'test-only-key';
+  globalThis.fetch = async (url, options) => {
+    if (url !== 'https://agent.thedevlabs.io/v1/api/chat') return originalFetch(url, options);
+    const prompt = JSON.parse(options.body).messages[0].content;
+    assert.match(prompt, /React JavaScript Git/);
+    assert.match(prompt, /React and TypeScript required/);
+    return Response.json({ message: { content: JSON.stringify({ score: 50, presentSkills: ['React'], missingSkills: ['TypeScript'], summary: 'React is evidenced; TypeScript is missing.' }) } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; if (originalKey === undefined) delete process.env.LABD_API_KEY; else process.env.LABD_API_KEY = originalKey; });
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
@@ -37,6 +48,8 @@ test('API extracts a real PDF, compares skills and calls persistence', async t =
   assert.equal(response.status, 201);
   const result = await response.json();
   assert.equal(result.score, 50);
+  assert.equal(result.method, 'labd-ai');
+  assert.equal(saved.summary, 'React is evidenced; TypeScript is missing.');
   assert.deepEqual(result.presentSkills, ['React']);
   assert.deepEqual(result.missingSkills, ['TypeScript']);
   assert.equal(saved.jobDescription, 'React and TypeScript required');

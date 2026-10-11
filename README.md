@@ -6,7 +6,7 @@ Import this repository once with the project Root Directory set to the repositor
 
 - Public routing: `/api/*` reaches `backend` with the original `/api` prefix intact; all other paths reach `frontend`. The frontend service includes its own SPA fallback. No service is internal-only in this configuration.
 - Calls and bindings: the static React frontend runs in the browser and fetches `/api/resumes/analyze` on the same origin. There are no function-to-function calls, so no internal bindings are declared. Runtime binding URLs must never be embedded in a Vite build. If a server-side caller is added later, declare a binding on that caller with all four fields (`type`, `service`, `format`, `env`) and read the generated URL at function runtime; do not manually set the generated variable.
-- Set `MONGODB_URI` in the Vercel project to your hosted database connection string. The existing `LABD_API_KEY` remains unused until AI integration is implemented. Database credentials and API keys must not use the browser-exposed `VITE_` prefix. Allow connections from Vercel in your database network settings.
+- Set `MONGODB_URI` and `LABD_API_KEY` in the Vercel project. The backend uses the labd key to analyze extracted resume text against the JD. Database credentials and API keys must not use the browser-exposed `VITE_` prefix. Allow connections from Vercel in your database network settings.
 - Remove the previous `VITE_API_URL` setting; it is no longer read. Same-origin calls do not require `FRONTEND_URL`; that setting is only for optional separate-origin clients. Existing backend CORS support remains available.
 - Check `https://your-project.vercel.app/api/health`, then upload through the frontend on that same domain.
 
@@ -16,7 +16,9 @@ With the Vercel CLI installed, run `vercel dev -L` from the repository root (or 
 
 Vercel Functions have a 4.5 MB request-body limit, including multipart overhead. Keep deployed PDF uploads below 4 MB, even though the local app permits 10 MB. Larger uploads require a direct-to-storage upload flow.
 
-React/Vite frontend and Express/MongoDB backend. AI is not integrated yet. The current service extracts text from a PDF and compares a predefined skill vocabulary with the job description. The score is the percentage of recognized JD skills found in the resume; it does not assess proficiency or overall resume quality. Scanned PDFs need OCR, which is not implemented.
+React/Vite frontend and Express/MongoDB backend. The backend extracts PDF text and calls `https://agent.thedevlabs.io/v1/api/chat` with server-only bearer authentication. The AI compares skills, relevant experience and qualifications against the JD, returning an estimated 0–100 job-fit score, present skills, missing skills and a summary. Results are validated before saving. Scanned PDFs need OCR, which is not implemented. The former keyword comparison service is retained for its tests but is not used by the analysis endpoint.
+
+Each analysis sends resume text and the JD to labd and spends the account's allowance. A 45-second timeout, readable provider error messages and no automatic retries prevent silent repeated charges. Invalid or malformed AI replies fail without a fabricated fallback score. Allowance information is not exposed through the public endpoint. Configure `LABD_API_KEY` in `backend/.env` locally and in Vercel environment settings when deployed.
 
 ## Local setup
 
@@ -33,11 +35,11 @@ React/Vite frontend and Express/MongoDB backend. AI is not integrated yet. The c
 - `backend/server.js`: environment, MongoDB connection, HTTP startup.
 - `backend/routes/`: API endpoints.
 - `backend/controller/`: request validation and response orchestration.
-- `backend/service/`: PDF extraction and comparison; future AI integration belongs here.
+- `backend/service/`: PDF extraction and labd AI analysis with response validation.
 - `backend/config/`: database connection and analysis schema.
 - `backend/middleware/`: memory upload handling and centralized errors.
 - `backend/utils.js`: shared error helper.
 
-`POST /api/resumes/analyze` accepts multipart `resume` (PDF) and `jobDescription` (text), returning `id`, `filename`, `score`, `presentSkills`, `missingSkills`, `requiredSkills` and `method`. `GET /api/health` reports database readiness.
+`POST /api/resumes/analyze` accepts multipart `resume` (PDF) and `jobDescription` (text), returning `id`, `filename`, `score`, `presentSkills`, `missingSkills`, `requiredSkills`, `summary` and `method` (`labd-ai`). `GET /api/health` reports database readiness.
 
 PDF bytes and extracted resume text are not persisted. MongoDB stores the filename, job description, score, skill lists and timestamps. The server requires a working MongoDB connection before starting and reports failures rather than returning fake results. The sample button is explicitly illustrative and makes no API call.
