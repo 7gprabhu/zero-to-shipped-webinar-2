@@ -1,9 +1,6 @@
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
 import app from './app.js';
 import { connectDB } from './config/db.js';
-dotenv.config({ path: fileURLToPath(new URL('./.env', import.meta.url)) });
 if (!process.env.VERCEL) {
 try {
   await connectDB();

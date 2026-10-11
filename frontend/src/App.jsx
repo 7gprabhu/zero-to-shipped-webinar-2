@@ -17,8 +17,7 @@ export default function App() {
     setBusy(true); setError('');
     try {
       const form = new FormData(); form.append('resume', file); form.append('jobDescription', jd);
-      const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-      const response = await fetch(`${apiUrl}/api/resumes/analyze`, { method: 'POST', body: form });
+      const response = await fetch('/api/resumes/analyze', { method: 'POST', body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Comparison failed.');
       setReport(data);

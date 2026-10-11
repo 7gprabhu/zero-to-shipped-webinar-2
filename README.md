@@ -1,12 +1,18 @@
 # 0 to shipped resume parser
 
-## Two Vercel projects
+## One Vercel project with multiple services
 
-Import this repository twice, selecting `backend` and `frontend` as the respective Root Directories. Enable access to files outside the Root Directory in each project's build settings so npm can use the workspace lockfile.
+Import this repository once with the project Root Directory set to the repository root. The root `vercel.json` defines the `backend` Express service and `frontend` Vite service. Build and output settings belong to each service. The previous per-folder configuration files have been replaced by this root configuration.
 
-- Backend: the Express framework is configured in `backend/vercel.json`. Set `MONGODB_URI` to your hosted MongoDB connection string and `FRONTEND_URL` to the exact frontend origin, such as `https://your-frontend.vercel.app` (no trailing slash). Multiple allowed frontend origins can be comma-separated. Ensure your database network settings allow connections from Vercel. The app reuses its MongoDB connection across warm function requests.
-- Frontend: Vite build, `dist` output and SPA fallback are configured in `frontend/vercel.json`. Set `VITE_API_URL=https://your-backend.vercel.app` (no `/api` suffix). Redeploy after changing this build-time variable.
-- Check `https://your-backend.vercel.app/api/health`, then upload through the frontend. Vercel deployment protection must permit browser requests to the backend.
+- Public routing: `/api/*` reaches `backend` with the original `/api` prefix intact; all other paths reach `frontend`. The frontend service includes its own SPA fallback. No service is internal-only in this configuration.
+- Calls and bindings: the static React frontend runs in the browser and fetches `/api/resumes/analyze` on the same origin. There are no function-to-function calls, so no internal bindings are declared. Runtime binding URLs must never be embedded in a Vite build. If a server-side caller is added later, declare a binding on that caller with all four fields (`type`, `service`, `format`, `env`) and read the generated URL at function runtime; do not manually set the generated variable.
+- Set `MONGODB_URI` in the Vercel project to your hosted database connection string. The existing `LABD_API_KEY` remains unused until AI integration is implemented. Database credentials and API keys must not use the browser-exposed `VITE_` prefix. Allow connections from Vercel in your database network settings.
+- Remove the previous `VITE_API_URL` setting; it is no longer read. Same-origin calls do not require `FRONTEND_URL`; that setting is only for optional separate-origin clients. Existing backend CORS support remains available.
+- Check `https://your-project.vercel.app/api/health`, then upload through the frontend on that same domain.
+
+### Local services verification
+
+With the Vercel CLI installed, run `vercel dev -L` from the repository root (or `vercel dev` for a linked project). Ensure `MONGODB_URI` is supplied to the backend runtime, through your local environment or local Vercel environment settings. Check `/api/health` and submit a PDF plus job description through the displayed local URL. This tests the services routing together; a Vite production build and backend unit/API tests alone do not verify Vercel's service router. Binding variables, if introduced in future, are injected by Vercel automatically.
 
 Vercel Functions have a 4.5 MB request-body limit, including multipart overhead. Keep deployed PDF uploads below 4 MB, even though the local app permits 10 MB. Larger uploads require a direct-to-storage upload flow.
 
@@ -19,7 +25,7 @@ React/Vite frontend and Express/MongoDB backend. AI is not integrated yet. The c
 3. Run `npm run dev`. Open http://localhost:5173. The frontend proxies `/api` to the API on port 5000. If changing the API port, update `frontend/vite.config.js` too.
 4. Upload a text-based PDF (up to 10 MB), paste the JD, and select **Analyze my resume**.
 
-`npm test` runs backend tests. `npm run build` creates `frontend/dist`. `npm start` runs only the API; serve the frontend separately with a same-origin `/api` proxy for deployment. This project is configured for local development, without accounts or public deployment.
+`npm test` runs backend tests. `npm run build` creates `frontend/dist`. `npm start` runs only the local API. `npm run dev` remains a standalone development alternative, using the local Vite proxy on port 5000; use `vercel dev` to test the actual multi-service routing. The app has no accounts.
 
 ## Structure
 

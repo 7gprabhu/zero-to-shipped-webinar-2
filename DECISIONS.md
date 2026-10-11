@@ -1,9 +1,14 @@
-# Project decisions
+I want to build an HTML, CSS, JS landing page for my resume parser, where I should be able to upload an PDF and get the score out of it. Here I just want to see the score, what skills are present, and what skills are missing. And I'm gonna call this as 0 to shipped resume parser. This is gonna be a mock design, so just build html css is fine, no back-end server is needed
+ 
+I want to convert this entire project into a react project
+ 
+I want you to move this react project into frontend folder and build a backend folder that contains the express server to handle the request, lets connect to mongoDB.
+ 
+The application should take resume PDF and a JD for comparison, AI part will be added later
+ 
+backend folder should container server.js, routes folder, controller folder, service folder, config folder, middleware folder and utils.js
+ 
+add vercel.json file to backend and frontend folder, I am going to create two projects in vercel for deployment
+ 
 
-- Convert the original landing page to React, preserving its visual design and existing copy.
-- Keep the React/Vite app in `frontend/` and Express API in `backend/`.
-- Backend includes `server.js`, `routes/`, `controller/`, `service/`, `config/`, `middleware/`, and `utils.js`.
-- Accept a resume PDF and job description together for comparison.
-- Connect MongoDB using `backend/.env`; save comparison results and the JD, without storing PDF bytes or extracted resume text.
-- Use explicit keyword matching for now. AI integration will be added later in the comparison service.
-- Distinguish illustrative sample results from real keyword comparison results. Do not fabricate a score when no supported JD skills are recognized.
+ mongodb+srv://<db_username>:naNblGzn5hEgQFEA@cluster0.6aykemw.mongodb.net/?appName=Cluster0

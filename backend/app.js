@@ -1,8 +1,11 @@
 import express from 'express';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
 import resumeRoutes from './routes/resumeRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { connectDB } from './config/db.js';
+dotenv.config({ path: fileURLToPath(new URL('./.env', import.meta.url)), quiet: true });
 const app = express();
 app.disable('x-powered-by');
 app.use((req, res, next) => {
